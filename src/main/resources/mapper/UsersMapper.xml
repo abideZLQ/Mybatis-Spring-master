@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mapper.UsersMapper">
+  <resultMap id="BaseResultMap" type="com.bear.model.Users">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="username" jdbcType="VARCHAR" property="username" />
+    <result column="password" jdbcType="VARCHAR" property="password" />
+    <result column="age" jdbcType="VARCHAR" property="age" />
+    <result column="email" jdbcType="VARCHAR" property="email" />
+    <result column="phone" jdbcType="VARCHAR" property="phone" />
+    <result column="classname" jdbcType="VARCHAR" property="classname" />
+    <result column="salt" jdbcType="VARCHAR" property="salt" />
+    <result column="available" jdbcType="INTEGER" property="available" />
+  </resultMap>
+
+  <!-- 添加用户和角色的关系表 -->
+  <insert id="saveUserRole">
+    INSERT INTO users_roles
+      (user_id,role_id)
+    VALUES
+      (#{userId},#{roleId})
+
+
+  </insert>
+
+  <!-- 修改用户和角色的关系表 -->
+  <update id="updateUserRole">
+    UPDATE
+      users_roles
+    SET
+      role_id = #{roleId}
+    WHERE
+      user_id = #{userId}
+  </update>
+
+  <select id="selectRoleByUserId" resultType="java.lang.Integer">
+    select
+      role_id
+    FROM
+      users_roles
+    WHERE
+      user_id = #{userId}
+  </select>
+</mapper>

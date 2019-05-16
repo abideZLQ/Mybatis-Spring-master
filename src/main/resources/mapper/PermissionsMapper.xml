@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mapper.PermissionsMapper">
+  <resultMap id="BaseResultMap" type="com.bear.model.Permissions">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="permission" jdbcType="VARCHAR" property="permission" />
+    <result column="parentid" jdbcType="INTEGER" property="parentid" />
+    <result column="url" jdbcType="VARCHAR" property="url" />
+    <result column="type" jdbcType="VARCHAR" property="type" />
+    <result column="icon" jdbcType="VARCHAR" property="icon" />
+    <result column="priority" jdbcType="INTEGER" property="priority" />
+    <result column="createtime" jdbcType="TIMESTAMP" property="createtime" />
+    <result column="available" jdbcType="INTEGER" property="available" />
+  </resultMap>
+
+  <!-- 根据用户id查询该用户所具有的权限 -->
+  <select id="selectPermissionByUserId" resultType="java.lang.String">
+    select
+        permission
+    FROM
+        permissions
+    WHERE
+        id in (select
+                      permission_id
+                from
+                      roles_permissions
+                where
+                      role_id in (SELECT
+                                          role_id
+                                  from
+                                          users_roles
+                                  where
+                                          user_id = #{id}
+                                  )
+              )
+  </select>
+</mapper>

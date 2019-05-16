@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mapper.RolesMapper">
+  <resultMap id="BaseResultMap" type="com.bear.model.Roles">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="role" jdbcType="VARCHAR" property="role" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="available" jdbcType="INTEGER" property="available" />
+  </resultMap>
+
+  <!-- 查询所有角色集合 -->
+  <select id="selectAllRoles" resultType="java.lang.String">
+    select role FROM roles
+  </select>
+
+  <!-- 根据用户id查询该用户所具有的角色 -->
+  <select id="selectRoleByUserId" resultType="java.lang.String">
+    select role FROM roles where id in (select role_id from users_roles where user_id = #{id})
+  </select>
+
+  <!-- 保存角色权限的中间表关系 -->
+  <insert id="saveRolesAndPermissions">
+    INSERT INTO roles_permissions ( role_id, permission_id )
+                       VALUES
+                       ( #{rolesId}, #{permissionsId} );
+
+  </insert>
+
+  <!-- 删除角色权限的中间表关系 -->
+  <delete id="deleteRolesAndPermissions">
+    DELETE
+    FROM
+    roles_permissions
+    WHERE
+    role_id = #{roleid}
+  </delete>
+
+  <!-- 查询此角色的权限集合 -->
+  <select id="selectRolesOfPermissionsList" resultType="java.lang.Integer">
+    SELECT
+        id
+    FROM
+        permissions
+    WHERE
+        id IN (
+            SELECT
+                permission_id
+            FROM
+                roles_permissions
+            WHERE
+                role_id = #{roleid})
+  </select>
+
+
+</mapper>

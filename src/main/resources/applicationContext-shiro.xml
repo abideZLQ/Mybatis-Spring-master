@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+			http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+			http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+
+	<!-- 配置自定义的realm -->
+	<bean id="userRealm" class="com.bear.realm.UserRealm">
+		<!--密码需要加密：加密器-->
+		<property name="credentialsMatcher" ref="credentialsMatcher" />
+	</bean>
+
+	<!-- 会话Cookie模板 -->
+	<bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<!--
+			 指定本系统SESSIONID, 默认为: JSESSIONID 问题: 与SERVLET容器名冲突, 如JETTY, TOMCAT 等默认JSESSIONID,
+    		 当跳出SHIRO SERVLET时如ERROR-PAGE容器会为JSESSIONID重新分配值导致登录会话丢失!
+        -->
+		<constructor-arg name="name" value="zlq"/>
+		<!-- 如果设置为true，则客户端不会暴露给服务端脚本代码，有助于减少某些类型的跨站脚本攻击 -->
+		<property name="httpOnly" value="true"/>
+		<!-- 设置cookie时间为30分钟,和session会话时间相同 -->
+		<!-- maxAge=-1,它的作用是：禁用rememberMe记住我 -->
+		<!-- value="-1",这里浏览器关闭时失效此Cookie,重新启动浏览器访问项目,找不到此cookie,永远不可能实现记住我功能 -->
+		<property name="maxAge" value="1800000"/><!-- maxAge=-1表示浏览器关闭时失效此Cookie -->
+	</bean>
+	<!--
+		为什么有了rememberMeCookie，还要必须设置sessionIdCookie，因为rememberMeCookie的默认cookie名字为JSESSIONID，
+		与SERVLET容器名冲突, 如JETTY, TOMCAT 等默认JSESSIONID,当跳出SHIROSERVLET时如ERROR-PAGE容器会为JSESSIONID重新分配值导致登录会话丢失!
+ 	-->
+	<bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<constructor-arg value="rememberMe"/>
+		<property name="httpOnly" value="true"/>
+		<property name="maxAge" value="2592000"/><!-- 30天 -->
+	</bean>
+
+	<!-- rememberMe管理器 -->
+	<bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+		<!-- cipherKey是加密rememberMe Cookie的密匙，默认AES算法 -->
+		<property name="cipherKey" value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}"/>
+		<property name="cookie" ref="rememberMeCookie"/>
+	</bean>
+
+
+	<!-- 会话ID生成器，用于生成会话的ID，使用JavaScript的UUID生成 -->
+	<bean id="sessionIdGenerator" class="org.apache.shiro.session.mgt.eis.JavaUuidSessionIdGenerator"/>
+
+	<!-- 会话DAO -->
+	<bean id="sessionDAO" class="org.apache.shiro.session.mgt.eis.EnterpriseCacheSessionDAO">
+		<!-- 设置session缓存的名称，默认就是shiro-activeSessionCache -->
+		<property name="activeSessionsCacheName" value="shiro-activeSessionCache"/>
+		<property name="sessionIdGenerator" ref="sessionIdGenerator"/>
+	</bean>
+
+	<!-- 会话验证调度器 -->
+	<bean id="sessionValidationScheduler" class="org.apache.shiro.session.mgt.quartz.QuartzSessionValidationScheduler">
+		<property name="sessionValidationInterval" value="1800000"/>
+		<property name="sessionManager" ref="sessionManager"/>
+	</bean>
+
+	<!-- 会话管理器 -->
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<!-- 设置全局会话过期时间：默认30分钟 -->
+		<property name="globalSessionTimeout" value="1800000"/>
+		<!-- 是否自动删除无效会话 -->
+		<property name="deleteInvalidSessions" value="true"/>
+		<!-- 会话验证是否启用 -->
+		<property name="sessionValidationSchedulerEnabled" value="true"/>
+		<!-- 会话验证调度器 -->
+		<property name="sessionValidationScheduler" ref="sessionValidationScheduler"/>
+		<!-- 会话持久化sessionDao -->
+		<property name="sessionDAO" ref="sessionDAO"/>
+		<!-- 是否启用sessionIdCookie，默认是启用的 -->
+		<property name="sessionIdCookieEnabled" value="true"/>
+		<!-- 会话Cookie -->
+		<property name="sessionIdCookie" ref="sessionIdCookie"/>
+	</bean>
+
+
+
+	<!-- 配置安全管理器SecurityManager -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="userRealm"/>
+		<property name="sessionManager" ref="sessionManager"/>
+		<!--给shiro添加缓存机制-->
+		<property name="cacheManager" ref="cacheManager"></property>
+		<!-- 设置securityManager安全管理器的rememberMeManger -->
+		<property name="rememberMeManager" ref="rememberMeManager"/>
+	</bean>
+
+	<!-- 如果设置的话,UserRealm自定义Realm中注入不了service对象 -->
+	<!-- 相当于调用SecurityUtils.setSecurityManager(securityManager) -->
+	<!--<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="staticMethod" value="org.apache.shiro.SecurityUtils.setSecurityManager"/>
+		<property name="arguments" ref="securityManager"/>
+	</bean>-->
+
+	<!-- 基于Form表单的身份验证过滤器 -->
+	<bean id="formAuthenticationFilter" class="org.apache.shiro.web.filter.authc.FormAuthenticationFilter">
+		<property name="usernameParam" value="username"/>
+		<property name="passwordParam" value="password"/>
+		<property name="loginUrl" value="/login.jsp"/>
+		<!-- rememberMeParam是rememberMe请求参数名，请求参数是boolean类型，true表示记住我 -->
+		<property name="rememberMeParam" value="rememberMe"/>
+	</bean>
+
+	<!-- 定义ShiroFilter -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager"/>
+		<property name="loginUrl" value="/login.jsp"/>
+		<!--&lt;!&ndash; 权限验证失败跳转的页面，需要配合Spring的ExceptionHandler异常处理机制使用 &ndash;&gt;-->
+		<!--<property name="unauthorizedUrl" value="/unauthorized.jsp"/>-->
+		<property name="filters">
+			<util:map>
+				<entry key="authc" value-ref="formAuthenticationFilter"/>
+			</util:map>
+		</property>
+		<property name="filterChainDefinitions">
+			<value>
+				<!-- 强调：这里的路径必须是绝对路径,如果是资源,是相对于webapp的/;如果是controller方法,是相对于@RequestMapping的全路径 -->
+
+				<!-- 静态资源不拦截 -->
+				/static/** = anon
+
+				<!-- 登录页面不拦截(简单理解：不登陆状态下可以访问的controller方法) -->
+				/login.jsp = anon
+				/login.do = anon
+				/register.do = anon
+				/user/saveUserInfo.do = anon
+
+				<!-- Shiro提供了退出登录的配置`logout`，会生成路径为`/logout`的请求地址，访问这个地址即会退出当前账户并清空缓存 -->
+				/logout = logout
+
+				<!-- `/**`表示所有请求，表示访问该地址的用户是身份验证通过或RememberMe登录的都可以 -->
+				/** = user
+			</value>
+		</property>
+	</bean>
+
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<!-- Shiro生命周期处理器 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+
+
+	<!-- 开启aop，对类代理 -->
+	<aop:config proxy-target-class="true"></aop:config>
+	<!-- 开启shiro注解支持 -->
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+
+	<!-- 不配置账号密码对了,也报错 -->
+	<!-- 定义需要特殊处理的异常，用类名或完全路径名作为key，异常页名作为值 -->
+	<!--shiro权限异常处理-->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="org.apache.shiro.authz.UnauthorizedException">redirect:/nopermission.jsp</prop>
+			</props>
+		</property>
+	</bean>
+
+
+
+	<!-- 缓存管理器 使用Ehcache实现,作用：缓存shiro的认证和授权信息,控制对象在多长时间没有被访问就会失效(和session/cookie区分开,session/cookie访问还存在并且是同一个),需要重新登录(跳入登录页面) -->
+	<!-- 错误案例：因为在xml配置文件中,timeToIdleSeconds(对象空闲时间)和timeToLiveSeconds(对象存活时间)设置了为2分钟,当用户在系统前台2分钟没有操作,缓存失效,当再次操作,iframe会跳入登录页面重新登录 -->
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManager" ref="ehCacheManager"/>
+	</bean>
+	<bean id="ehCacheManager" class ="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+		<property name="configLocation" value="classpath:shiro-ehcache.xml" />
+		<property name="shared" value="true"></property>
+	</bean>
+
+
+	<!--加密器-->
+	<bean id="credentialsMatcher" class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+		<!--加密算法-->
+		<property name="hashAlgorithmName" value="md5" />
+		<!--散列次数-->
+		<property name="hashIterations" value="3" />
+	</bean>
+
+
+
+</beans>

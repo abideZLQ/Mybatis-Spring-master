@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mapper.SignMapper">
+  <resultMap id="BaseResultMap" type="com.bear.model.Sign">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="uid" jdbcType="INTEGER" property="uid" />
+    <result column="signintime" jdbcType="TIME" property="signintime" />
+    <result column="instatus" jdbcType="INTEGER" property="instatus" />
+    <result column="signouttime" jdbcType="TIME" property="signouttime" />
+    <result column="outstatus" jdbcType="INTEGER" property="outstatus" />
+    <result column="sdate" jdbcType="DATE" property="sdate" />
+    <result column="available" jdbcType="INTEGER" property="available" />
+  </resultMap>
+
+
+  <resultMap id="extraResultMap" type="com.bear.model.Sign">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="uid" jdbcType="INTEGER" property="uid" />
+    <result column="signintime" jdbcType="TIME" property="signintime" />
+    <result column="instatus" jdbcType="INTEGER" property="instatus" />
+    <result column="signouttime" jdbcType="TIME" property="signouttime" />
+    <result column="outstatus" jdbcType="INTEGER" property="outstatus" />
+    <result column="sdate" jdbcType="DATE" property="sdate" />
+    <result column="available" jdbcType="INTEGER" property="available" />
+    <association property="users" javaType="com.bear.model.Users">
+      <id column="userid" jdbcType="INTEGER" property="id" />
+      <result column="username" jdbcType="VARCHAR" property="username" />
+      <result column="password" jdbcType="VARCHAR" property="password" />
+      <result column="age" jdbcType="VARCHAR" property="age" />
+      <result column="email" jdbcType="VARCHAR" property="email" />
+      <result column="phone" jdbcType="VARCHAR" property="phone" />
+      <result column="classname" jdbcType="VARCHAR" property="classname" />
+      <result column="salt" jdbcType="VARCHAR" property="salt" />
+      <result column="available" jdbcType="INTEGER" property="available" />
+    </association>
+
+  </resultMap>
+  <!--获取班级签到信息列表-->
+  <select id="selectAllSign" resultMap="extraResultMap">
+    select
+        s.id, s.uid, s.signintime, s.instatus, s.signouttime, s.outstatus, s.sdate, s.available,
+        u.id as userid, u.username, u.password, u.age, u.email, u.phone, u.classname, u.salt, u.available
+      FROM
+        sign s
+      LEFT JOIN
+        users u
+      ON
+        s.uid = u.id
+      <where>
+        <if test="sdate != null">
+          AND s.sdate = #{sdate}
+        </if>
+      </where>
+  </select>
+</mapper>

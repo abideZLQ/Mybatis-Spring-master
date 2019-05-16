@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mapper.ArticlesMapper">
+  <resultMap id="BaseResultMap" type="com.bear.model.Articles">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="userid" jdbcType="INTEGER" property="userid" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="articledate" jdbcType="TIMESTAMP" property="articledate" />
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+    <result column="contenthtml" jdbcType="LONGVARCHAR" property="contenthtml" />
+  </resultMap>
+
+  <select id="selectByPageArticles" resultType="com.bear.model.Articles">
+    SELECT
+    *
+    FROM
+    articles
+    <where>
+      <if test="title!=null and title!=''">
+        AND title like CONCAT('%',#{title},'%')
+      </if>
+    </where>
+
+  </select>
+</mapper>
